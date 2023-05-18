@@ -1,0 +1,6 @@
+accelerate
+transformers
+datasets
+torch
+s3fs
+sentencepiece
