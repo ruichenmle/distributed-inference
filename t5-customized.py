@@ -8,17 +8,6 @@ from torch.nn.parallel import DistributedDataParallel
 
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 
-def pad_to_same_length(list_of_tensors):
-
-    # Pad tensors with zeros to the maximum length
-    max_length = max(tensor.shape[1] for tensor in list_of_tensors)
-    padded_tensors = torch.stack([
-        torch.nn.functional.pad(tensor, (0, max_length - tensor.shape[1]), value=0)
-        for tensor in list_of_tensors
-    ], dim=0)
-
-    return padded_tensors.squeeze()
-
 def pad_to_desired_length(list_of_tensors, desired_length):
 
     # Pad tensors with zeros to the maximum length
@@ -43,34 +32,23 @@ def create_evenly_distributed_chunks(inputs_list, n_gpus):
     chunks = np.array_split(np.array(inputs_list), n_gpus)
     return chunks
 
-
-# Determine the number of available GPUs and the current GPU rank
-# n_gpus = torch.cuda.device_count()
-# rank = torch.distributed.get_rank()
-
-rank = int(os.getenv('RANK', '0'))
-n_gpus = int(os.getenv('WORLD_SIZE', '1'))
-local_rank = int(os.getenv('LOCAL_RANK', '0'))
-print(rank, n_gpus, local_rank)
-device = f"cuda:{local_rank}"
-
 # Initialize the distributed training environment
 torch.distributed.init_process_group(backend='nccl')
 
+# Determine the number of available GPUs and the current GPU rank
+rank = int(os.getenv('RANK', '0'))
+n_gpus = int(os.getenv('WORLD_SIZE', '1'))
+local_rank = int(os.getenv('LOCAL_RANK', '0'))
+device = f"cuda:{local_rank}"
+print(rank, n_gpus, local_rank)
+torch.cuda.set_device(local_rank) # RuntimeError: CUDA error: CUBLAS_STATUS_EXECUTION_FAILED when calling `cublasSgemm( handle, opa, opb, m, n, k, &alpha, a, lda, b, ldb, &beta, c, ldc)
 
-# if rank == 0:
-#     print(f"Before model load: {torch.cuda.memory_allocated()}")
 
 tokenizer = AutoTokenizer.from_pretrained("t5-base")
 model = T5ForConditionalGeneration.from_pretrained("t5-base")
 model = model.to(device)
-
 # Wrap model in DistributedDataParallel for multi-GPU training
 model = DistributedDataParallel(model, device_ids=[local_rank])
-
-# if rank == 0:
-#     print(f"After model load: {torch.cuda.memory_allocated()}")
-
 
 
 input_data = ["question: Which is capital city of India? context: New Delhi is India's capital", 
@@ -112,8 +90,7 @@ for i in range(len(input_chunk)):
     mask = attention_mask_chunk[i].unsqueeze(0)
     outputs = model.module.generate(input_ids=input_id, 
                             attention_mask=mask,
-                            max_length=32, 
-                            synced_gpus=False) # only current gpu
+                            max_length=4096) # only current gpu
     
     local_outputs.append(outputs)
     
@@ -126,16 +103,8 @@ del tokenized_chunk
 del input_ids_chunk
 del attention_mask_chunk
 del model
-
-if rank == 0:
-    print(f"After inferece and model removed: {torch.cuda.memory_allocated()}")
-
     
-local_outputs = pad_to_desired_length(local_outputs, desired_length=128)
-
-
-if rank == 0:
-    print(f"Rank {rank} Finished! Memory: {torch.cuda.mem_get_info(rank)}")
+local_outputs = pad_to_desired_length(local_outputs, desired_length=4096)
 
 print(f"Rank {rank} output shape: {local_outputs.shape}")
 
@@ -144,14 +113,12 @@ dist.barrier()
 
 
 # All-gather the decoded results from all GPUs
-print(local_outputs)
 gathered_outputs_list = [torch.zeros_like(local_outputs) for _ in range(n_gpus)]
-print("all gather start")
-dist.all_gather(gathered_outputs_list, local_outputs)
-print(gathered_outputs_list)
-print("all gather done!")
+dist.all_gather(gathered_outputs_list, local_outputs) # collective operations; every process needs to call dist.all_gather, not just the one with rank 0. Each process contributes its local tensor and collects the tensors from all other processes.
 
 if rank == 0:
+    print(f"Gathered output list: {gathered_outputs_list}")
+
     # convert output to list 
     print(f"cat started rank {rank}")
     final_outputs = torch.cat(gathered_outputs_list, dim=0).tolist()
