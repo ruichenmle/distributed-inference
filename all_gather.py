@@ -6,7 +6,7 @@ import torch
 import torch.distributed as dist
 
 def main():
-    rank = int(os.getenv('RANK', '0'))
+    rank = int(os.getenv('RANK', '0')) # RuntimeError: Default process group has not been initialized, please make sure to call init_process_group.
     world_size = int(os.getenv('WORLD_SIZE', '1'))
     local_rank = int(os.getenv('LOCAL_RANK', '0'))
 
@@ -15,9 +15,12 @@ def main():
     torch.cuda.set_device(local_rank)
     dist.init_process_group(backend='nccl')
 
-    t = torch.rand(1).cuda(local_rank)
+    t = torch.rand(1).to(local_rank) # RuntimeError: Tensors must be CUDA and dense
     gather_t = [torch.ones_like(t) for _ in range(world_size)]
     dist.all_gather(gather_t, t)
+
+    # dist.barrier()
+
     if rank == 0:
         print(rank, t, gather_t)
 
