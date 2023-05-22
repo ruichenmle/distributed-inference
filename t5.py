@@ -22,7 +22,7 @@ def main():
 
     # Set input data for each GPU
     input_data = [
-        "Translate English to French: Hello, how are you?",
+        "Translate English to French: Hello, how are you? I feel great today, and let's go hiking",
         "Translate English to French: What is your name?",
         "translate English to German: Very bad.",
              "translate English to German: How long is it?", 

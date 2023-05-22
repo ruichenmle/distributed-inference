@@ -4,6 +4,7 @@ import torch
 import torch.distributed as dist
 from transformers import pipeline
 from transformers import AutoTokenizer, T5ForConditionalGeneration
+from torch.nn.parallel import DistributedDataParallel
 
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 
@@ -64,6 +65,9 @@ tokenizer = AutoTokenizer.from_pretrained("t5-base")
 model = T5ForConditionalGeneration.from_pretrained("t5-base")
 model = model.to(device)
 
+# Wrap model in DistributedDataParallel for multi-GPU training
+model = DistributedDataParallel(model, device_ids=[local_rank])
+
 # if rank == 0:
 #     print(f"After model load: {torch.cuda.memory_allocated()}")
 
@@ -106,7 +110,7 @@ local_outputs = []
 for i in range(len(input_chunk)):
     input_id = input_ids_chunk[i].unsqueeze(0)
     mask = attention_mask_chunk[i].unsqueeze(0)
-    outputs = model.generate(input_ids=input_id, 
+    outputs = model.module.generate(input_ids=input_id, 
                             attention_mask=mask,
                             max_length=32, 
                             synced_gpus=False) # only current gpu
