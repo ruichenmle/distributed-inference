@@ -4,3 +4,5 @@ datasets
 torch
 s3fs
 sentencepiece
+deepspeed
+protobuf==3.20.*
