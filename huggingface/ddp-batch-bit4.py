@@ -84,6 +84,7 @@ def main():
     model_name = 'google/flan-t5-large'
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = T5ForConditionalGeneration.from_pretrained('../origin-model/', load_in_8bit=True, device_map="auto")
+
     model = model.to(device)
     model.eval()
     print("Loading Model Done!")
@@ -99,7 +100,7 @@ def main():
         
     start_time = time.time()
     local_outputs = []
-    batch_size = 1
+    batch_size = 4
     for i in range(0, len(input_chunk), batch_size):
         print(local_rank, i)
         batch = input_chunk[i:i+batch_size]
@@ -143,8 +144,8 @@ def main():
         total_time = time.time() - start_time
 
         print("Gathered Outputs:")
-        print(decoded_outputs)
         print(f"Total time: {total_time} seconds; {total_time / 60} mins")
+        print(f"Total time: {total_time / len(input_data)} seconds/sample")
 
         df['prediction'] = decoded_outputs
         df.to_csv(f"hf-parallel-batch-{batch_size}-inference.tsv", sep='\t', index=False)

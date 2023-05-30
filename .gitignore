@@ -3,7 +3,7 @@ origin_model/
 new_test_fixed.tsv
 awscliv2.zip
 aws/
-
+*.tsv
 
 # Editors
 .vscode/

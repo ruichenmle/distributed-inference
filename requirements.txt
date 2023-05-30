@@ -1,3 +1,4 @@
+scipy
 datasets
 torch
 s3fs
