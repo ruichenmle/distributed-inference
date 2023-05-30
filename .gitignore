@@ -1,5 +1,9 @@
 origin-model/
+origin_model/
 new_test_fixed.tsv
+awscliv2.zip
+aws/
+
 
 # Editors
 .vscode/
