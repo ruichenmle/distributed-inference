@@ -1,8 +1,11 @@
-accelerate
-transformers
 datasets
 torch
 s3fs
 sentencepiece
 deepspeed
 protobuf==3.20.*
+bitsandbytes
+transformers @ git+https://github.com/huggingface/transformers.git
+peft @ git+https://github.com/huggingface/peft.git
+accelerate @ git+https://github.com/huggingface/accelerate.git
+

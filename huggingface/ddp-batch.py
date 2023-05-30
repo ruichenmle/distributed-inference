@@ -161,7 +161,7 @@ def main():
         print(f"Total time: {total_time} seconds; {total_time / 60} mins")
 
         df['prediction'] = decoded_outputs
-        df.to_csv(f"hf-parallel-batch-8-inference.tsv", sep='\t', index=False)
+        df.to_csv(f"hf-parallel-batch-{batch_size}-inference.tsv", sep='\t', index=False)
 
     torch.distributed.destroy_process_group()
 

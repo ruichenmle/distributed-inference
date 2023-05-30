@@ -2,7 +2,7 @@
 
 S3_MODEL_PATH="s3://mosaicml-68c98fa5-0b21-4c7b-b40b-c4482db8832a/sut-extraction/ruichen/sut-final-model/"
 S3_FILE_PATH="s3://mosaicml-68c98fa5-0b21-4c7b-b40b-c4482db8832a/sut-extraction/ruichen/sut-combined-data/new_test_fixed.tsv"
-LOCAL_MODEL_PATH="/mnt/ruichen/distributed-inference/origin_model/"
+LOCAL_MODEL_PATH="/mnt/ruichen/distributed-inference/origin-model/"
 LOCAL_FILE_PATH="/mnt/ruichen/distributed-inference/new_test_fixed.tsv"
 
 DOWNLOAD_SUCCESS=false
@@ -43,7 +43,11 @@ else
     fi
 fi
 
+pwd
+ls
 # Execute additional commands
+pip install -r requirements.txt
+
 # if $DOWNLOAD_SUCCESS; then
 #     echo "Running additional commands..."
 #     # Command 1
